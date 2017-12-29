@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../thesocket/js/jquery.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="600" height="300">
+    浏览器不支持canvas  <!-- 如果不支持会显示这段文字 -->
+</canvas>
+<div id="socketview">
+</div>
+<h1>在线人数</h1>
+<div id="user" style="">1</div>
+<h2>公告内容</h2>
+<div id="bulletinBoard" style="">无</div>
+<script>
+</script>
+<script>
+    ws = new WebSocket("ws://127.0.0.1:1234");
+    ws.onopen = function() {
+        //模拟唯一id
+        var time =new Date();
+        time = time.getTime();
+        ws.send('tom'+time);
+        socket_send('user','add')
+    };
+    ws.onmessage = function(e) {
+        var obj = JSON.parse(e.data);
+
+        switch (obj.type){
+            case 'draw':
+                document.getElementById("image_png").src=obj.data;
+                break;
+            case 'user':
+                document.getElementById("user").innerHTML=obj.data;
+                break;
+            case 'bulletinBoard':
+                document.getElementById("bulletinBoard").innerHTML=obj.data;
+                break
+            default:
+                break;
+        }
+
+    };
+</script>
+<script>
+    function encodeUTF8(str){
+        var temp = "",rs = "";
+        for( var i=0 , len = str.length; i < len; i++ ){
+            temp = str.charCodeAt(i).toString(16);
+            rs  += "\\u"+ new Array(5-temp.length).join("0") + temp;
+        }
+        return rs;
+    }
+    function decodeUTF8(str){
+        return str.replace(/(\\u)(\w{4}|\w{2})/gi, function($0,$1,$2){
+            return String.fromCharCode(parseInt($2,16));
+        });
+    }
+</script>
+<script>
+//    $('#s_input').blur(function () {
+//        socket_push($(this).val());
+//    });
+
+
+
+</script>
+
+<br/>
+<button style="width:80px;background-color:yellow;" onclick='linecolor="yellow";'>YELLOW</button>
+<button style="width:80px ;background-color:red;" onclick='linecolor="red";'>RED</button>
+<button style="width:80px ;background-color:blue;" onclick='linecolor="blue";'>BLUE</button>
+<button style="width:80px ;background-color:green;" onclick='linecolor="green";'>GREEN</button>
+<button style="width:80px ;background-color:white;" onclick='linecolor="white";'>WHITE</button>
+<button style="width:80px ;background-color:black;" onclick='linecolor="black";'>BLACK</button>
+<br/>
+
+<button style="width: 80px;background-color: white;" onclick="linw=4;">4PX</button>
+<button style="width: 80px;background-color: white;" onclick="linw=8;">8PX</button>
+<button style="width: 80px;background-color: white;" onclick="linw=16;">16PX</button>
+<br/>
+
+<button style="width: 80px;background-color: white;" onclick="copyimage();">EXPORT</button>
+
+<br/>
+<img src="" id="image_png" width="600px" height="300px" >
+<br/>
+
+<script type="text/javascript">
+    var canvas = document.getElementById('canvas'); //获取标签
+    var ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0,0,600,300);
+    var onoff = false; //按下标记
+    var oldx = -10;
+    var oldy = -10;
+    //设置颜色
+    var linecolor = "black";
+    var linw = 4;
+    canvas.addEventListener("mousemove",draw,true); //鼠标移动事件
+    canvas.addEventListener("mousedown",down,false); //鼠标按下事件
+    canvas.addEventListener("mouseup",up,false); //鼠标弹起事件
+    function down(event){
+        onoff = true;
+        oldx = event.pageX - 10;
+        oldy = event.pageY - 10;
+
+    }
+    function up(){
+        onoff = false;
+    }
+    function draw(event){
+        if (onoff==true) {
+            var newx = event.pageX - 10;
+            var newy = event.pageY - 10
+            ctx.beginPath();
+            ctx.moveTo(oldx,oldy);
+            ctx.lineTo(newx,newy);
+            ctx.strokeStyle = linecolor;
+            ctx.lineWidth = linw;
+            ctx.lineCap = "round";
+            ctx.stroke();
+            oldx = newx;
+            oldy = newy;
+            copyimage();
+
+        }
+    }
+    function copyimage(event)
+    {
+        var img_png_src = canvas.toDataURL("image/png"); //将画板保存为图片格式的函数
+        socket_send('draw',img_png_src);
+    }
+    function socket_send(a,b) {
+        var date = JSON.stringify({
+            type:a,
+            data:b
+        });
+        ws.send(date);
+    }
+</script>
+</body>
+</html>
